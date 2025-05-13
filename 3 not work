@@ -1,0 +1,117 @@
+// Пины драйвера L293D
+#define ENA 9    // ШИМ мотор A (Enable 1)
+#define IN1 8    // Направление A+
+#define IN2 7    // Направление A-
+#define ENB 10   // ШИМ мотор B (Enable 2)
+#define IN3 6    // Направление B+
+#define IN4 5    // Направление B-
+
+#define BUZZER 11 // Пьезо-пищалка
+
+// Упрощённые ноты "К Элизе" (частоты в Гц)
+int melody[] = {
+  659, 587, 659, 587, 659, 494, 587, 523, // E5 D5 E5 D5 E5 B4 D5 C5
+  440, 262, 330, 440, 494, 330, 392, 494,  // A4 C4 E4 A4 B4 E4 G4 B4
+  523                                      // C5
+};
+
+// Длительности нот (4 - четверть, 8 - восьмая)
+int durations[] = {
+  8, 8, 8, 8, 8, 8, 8, 8,
+  4, 8, 8, 8, 4, 8, 8, 8,
+  2
+};
+
+void setup() {
+  // Настройка пинов моторов
+  pinMode(ENA, OUTPUT);
+  pinMode(ENB, OUTPUT);
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(IN3, OUTPUT);
+  pinMode(IN4, OUTPUT);
+  
+  Serial.begin(9600);
+  Serial.println("Готов к работе! Команды: F,B,L,R,S,M");
+}
+
+void loop() {
+  if (Serial.available()) {
+    char cmd = Serial.read();
+    executeCommand(cmd);
+  }
+}
+
+void executeCommand(char cmd) {
+  switch(cmd) {
+    case 'F': moveForward(); break;
+    case 'B': moveBackward(); break;
+    case 'L': turnLeft(); break;
+    case 'R': turnRight(); break;
+    case 'S': stopMotors(); break;
+    case 'M': playMelody(); break;
+    default: Serial.println("Неизвестная команда");
+  }
+}
+
+// ===== Движение =====
+void moveForward() {
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, HIGH);
+  digitalWrite(IN4, LOW);
+  analogWrite(ENA, 200); // Скорость 200/255
+  analogWrite(ENB, 200);
+  Serial.println("Вперёд!");
+}
+
+void moveBackward() {
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, HIGH);
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, HIGH);
+  analogWrite(ENA, 200);
+  analogWrite(ENB, 200);
+  Serial.println("Назад!");
+}
+
+void turnLeft() {
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, HIGH);
+  digitalWrite(IN3, HIGH);
+  digitalWrite(IN4, LOW);
+  analogWrite(ENA, 150);
+  analogWrite(ENB, 150);
+  Serial.println("Влево!");
+}
+
+void turnRight() {
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, HIGH);
+  analogWrite(ENA, 150);
+  analogWrite(ENB, 150);
+  Serial.println("Вправо!");
+}
+
+void stopMotors() {
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, LOW);
+  analogWrite(ENA, 0);
+  analogWrite(ENB, 0);
+  Serial.println("Стоп!");
+}
+
+// ===== Мелодия =====
+void playMelody() {
+  Serial.println("Играю 'К Элизе'...");
+  for (int i = 0; i < sizeof(melody)/sizeof(int); i++) {
+    int duration = 1000 / durations[i];
+    tone(BUZZER, melody[i], duration);
+    delay(duration * 1.3); // Пауза между нотами
+  }
+  noTone(BUZZER);
+}
