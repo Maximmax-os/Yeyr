@@ -1,0 +1,106 @@
+#include <toneAC.h>  // Установите через "Менеджер библиотек"
+
+// Пины драйвера L293D
+const byte ENA = 9;
+const byte IN1 = 8;
+const byte IN2 = 7;
+const byte ENB = 10;
+const byte IN3 = 6;
+const byte IN4 = 5;
+const byte BUZZER = 11;
+
+// Мелодия "К Элизе" (упрощённая версия)
+const int melody[] = {
+  659, 587, 659, 587, 659, 494, 587, 523, // E5 D5 E5 D5 E5 B4 D5 C5
+  440, 262, 330, 440, 494, 330, 392, 494,  // A4 C4 E4 A4 B4 E4 G4 B4
+  523                                       // C5
+};
+
+const byte noteDurations[] = {
+  8, 8, 8, 8, 8, 8, 8, 8,  // 8 - восьмые ноты
+  4, 8, 8, 8, 4, 8, 8, 8,  // 4 - четвертные
+  2                        // 2 - половинная
+};
+
+// Системные переменные
+unsigned long prevNoteTime = 0;
+int currentNote = 0;
+bool isMelodyPlaying = true;
+
+void setup() {
+  // Настройка пинов моторов
+  pinMode(ENA, OUTPUT);
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(ENB, OUTPUT);
+  pinMode(IN3, OUTPUT);
+  pinMode(IN4, OUTPUT);
+  
+  // Начальное движение
+  moveForward();
+}
+
+void loop() {
+  // 1. Неблокирующее воспроизведение мелодии
+  if (isMelodyPlaying) {
+    playMelody();
+  }
+
+  // 2. Движение по заданному алгоритму
+  static unsigned long moveStartTime = millis();
+  
+  if (millis() - moveStartTime < 3000) {
+    moveForward();  // Едем 3 секунды
+  } 
+  else if (millis() - moveStartTime < 4000) {
+    turnRight();    // Поворот 1 секунду
+  } 
+  else {
+    moveStartTime = millis();  // Сброс таймера
+  }
+}
+
+// ===== Функции движения =====
+void moveForward() {
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, HIGH);
+  digitalWrite(IN4, LOW);
+  analogWrite(ENA, 200);
+  analogWrite(ENB, 200);
+}
+
+void turnRight() {
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, HIGH);
+  analogWrite(ENA, 150);
+  analogWrite(ENB, 150);
+}
+
+void stopMotors() {
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, LOW);
+  analogWrite(ENA, 0);
+  analogWrite(ENB, 0);
+}
+
+// ===== Воспроизведение мелодии =====
+void playMelody() {
+  if (currentNote >= sizeof(melody)/sizeof(int)) {
+    noToneAC();
+    isMelodyPlaying = false;
+    return;
+  }
+
+  unsigned long currentDuration = 1000 / noteDurations[currentNote];
+  
+  if (millis() - prevNoteTime >= currentDuration * 1.3) {
+    toneAC(BUZZER, melody[currentNote], currentDuration);
+    prevNoteTime = millis();
+    currentNote++;
+  }
+}
